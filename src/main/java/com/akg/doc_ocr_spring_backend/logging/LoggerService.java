@@ -17,6 +17,10 @@ public class LoggerService {
         logger.warn(message, args);
     }
 
+    public void debug(String message, Object... args) {
+        logger.debug(message, args);
+    }
+
     public void error(String message, Throwable t, Object... args) {
         if (t != null) {
             logger.error(String.format(message, args), t);

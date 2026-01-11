@@ -2,6 +2,7 @@ package com.akg.doc_ocr_spring_backend.controller;
 
 import com.akg.doc_ocr_spring_backend.dto.OcrResponse;
 import com.akg.doc_ocr_spring_backend.service.OcrService;
+import com.akg.doc_ocr_spring_backend.logging.LoggerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -19,31 +20,34 @@ import java.io.IOException;
 public class DocOcrController {
 
 	private final OcrService ocrService;
+	private final LoggerService logger;
 
 	@Autowired
-	public DocOcrController(OcrService ocrService) {
+	public DocOcrController(OcrService ocrService, LoggerService logger) {
 		this.ocrService = ocrService;
+		this.logger = logger;
 	}
 
 	@PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	public ResponseEntity<OcrResponse> uploadPdf(@RequestParam("file") MultipartFile file) {
 		if (file == null || file.isEmpty()) {
-			return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-					.body(new OcrResponse(null, null, "no file provided"));
+		    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+			    .body(new OcrResponse(null, null, "no file provided"));
 		}
 
 		String contentType = file.getContentType();
 		if (contentType == null || !contentType.toLowerCase().contains("pdf")) {
-			return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
-					.body(new OcrResponse(file.getOriginalFilename(), null, "only PDF files are supported"));
+		    return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+			    .body(new OcrResponse(file.getOriginalFilename(), null, "only PDF files are supported"));
 		}
 
 		try {
-			String text = ocrService.processPdf(file);
+		    String text = ocrService.processPdf(file);
 			return ResponseEntity.ok(new OcrResponse(file.getOriginalFilename(), text, "success"));
 		} catch (IOException e) {
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-					.body(new OcrResponse(file.getOriginalFilename(), null, "processing error"));
+		    logger.error("uploadPdf processing error for file={}", e, file.getOriginalFilename());
+		    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+			    .body(new OcrResponse(file.getOriginalFilename(), null, "processing error"));
 		}
 	}
 
