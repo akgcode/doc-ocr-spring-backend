@@ -15,6 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.akg.doc_ocr_spring_backend.dto.OcrSpaceResponse;
 import com.akg.doc_ocr_spring_backend.logging.LoggerService;
 import com.akg.doc_ocr_spring_backend.service.OcrService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -78,59 +79,57 @@ public class OcrServiceImpl implements OcrService {
             return parsedTexts;
         }
 
-        logger.info("Parsing OCR response. Keys: {}", response.keySet());
+        logger.info("Parsing OCR response with ObjectMapper");
 
-        Object isErrored = response.get("IsErroredOnProcessing");
-        if (isErrored != null && Boolean.TRUE.equals(isErrored)) {
-            Object errorMessage = response.get("ErrorMessage");
-            String error = "OCR Error: " + (errorMessage != null ? errorMessage.toString() : "Unknown error");
-            parsedTexts.add(error);
+        try {
+            // Convert Map to OcrSpaceResponse DTO using ObjectMapper
+            ObjectMapper objectMapper = new ObjectMapper();
+            OcrSpaceResponse ocrResponse = objectMapper.convertValue(response, OcrSpaceResponse.class);
+
+            logger.info("Successfully converted response to OcrSpaceResponse DTO");
+
+            // Check for top-level errors
+            if (Boolean.TRUE.equals(ocrResponse.getIsErroredOnProcessing())) {
+                String errorMsg = ocrResponse.getErrorMessage() != null ? ocrResponse.getErrorMessage() : "Unknown error";
+                logger.warn("OCR processing returned error: {}", errorMsg);
+                parsedTexts.add("OCR Error: " + errorMsg);
+                return parsedTexts;
+            }
+
+            // Extract parsed texts from ParsedResults array
+            if (ocrResponse.getParsedResults() != null && !ocrResponse.getParsedResults().isEmpty()) {
+                logger.info("Found {} parsed results in response", ocrResponse.getParsedResults().size());
+
+                for (int i = 0; i < ocrResponse.getParsedResults().size(); i++) {
+                    OcrSpaceResponse.ParsedResult result = ocrResponse.getParsedResults().get(i);
+                    logger.info("Processing ParsedResult index: {}", i);
+
+                    if (result.getParsedText() != null && !result.getParsedText().isEmpty()) {
+                        logger.info("Extracted ParsedText from result index {}, length: {}", i, result.getParsedText().length());
+                        parsedTexts.add(result.getParsedText());
+                    } else if (result.getErrorMessage() != null && !result.getErrorMessage().isEmpty()) {
+                        String error = "Page " + (i + 1) + " Error: " + result.getErrorMessage();
+                        logger.warn("{}", error);
+                        parsedTexts.add(error);
+                    }
+                }
+            } else {
+                logger.warn("No ParsedResults found in response");
+            }
+
+            if (parsedTexts.isEmpty()) {
+                logger.warn("No parsed texts extracted from response");
+                parsedTexts.add("Error: No parsed text extracted from OCR response");
+            }
+
+            logger.info("Parsing complete. Total pages extracted: {}", parsedTexts.size());
+            return parsedTexts;
+
+        } catch (Exception e) {
+            logger.error("Error converting response to OcrSpaceResponse DTO", e);
+            parsedTexts.add("Error: Failed to parse OCR response");
             return parsedTexts;
         }
-
-        // Extract ParsedResults array
-        Object parsedResultsObj = response.get("ParsedResults");
-        if (parsedResultsObj instanceof List) {
-            List<Map<String, Object>> parsedResults = (List<Map<String, Object>>) parsedResultsObj;
-            for (int i = 0; i < parsedResults.size(); i++) {
-                Map<String, Object> result = parsedResults.get(i);
-
-                OcrSpaceResponse dto = new OcrSpaceResponse();
-                Object exitCode = result.get("FileParseExitCode");
-                if (exitCode instanceof Integer) {
-                    dto.setOcrExitCode((Integer) exitCode);
-                }
-
-                Object parsedText = result.get("ParsedText");
-                if (parsedText != null) {
-                    dto.setParsedText(parsedText.toString());
-                }
-
-                Object errorMessage = result.get("ErrorMessage");
-                if (errorMessage != null && !errorMessage.toString().isEmpty()) {
-                    dto.setErrorMessage(errorMessage.toString());
-                }
-
-                Object errorDetails = result.get("ErrorDetails");
-                if (errorDetails != null && !errorDetails.toString().isEmpty()) {
-                    dto.setErrorDetails(errorDetails.toString());
-                }
-
-                if (dto.getParsedText() != null && !dto.getParsedText().isEmpty()) {
-                    parsedTexts.add(dto.getParsedText());
-                } else if (dto.getErrorMessage() != null) {
-                    String error = "Page " + (i + 1) + " Error: " + dto.getErrorMessage();
-                    parsedTexts.add(error);
-                }
-            }
-        } else {
-            logger.warn("ParsedResults not found or not a list in response");
-        }
-
-        if (parsedTexts.isEmpty()) {
-            parsedTexts.add("Error: No parsed text extracted from OCR response");
-        }
-        return parsedTexts;
     }
 
 }
