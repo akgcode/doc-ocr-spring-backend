@@ -71,7 +71,7 @@ Windows (PowerShell or `cmd.exe`) — always use the `.\` prefix; PowerShell req
 .\gradlew.bat bootRun
 ```
 
-The app starts on `http://localhost:8080` by default. Hibernate auto-creates/updates the database schema on startup (`spring.jpa.hibernate.ddl-auto=update`).
+The app starts on `http://localhost:8080` by default. Hibernate auto-creates/updates the database schema on startup (`spring.jpa.hibernate.ddl-auto=update`). Logs are written to both the console and `logs/app.log` (relative to the working directory the app is started from).
 
 ### Windows troubleshooting
 
