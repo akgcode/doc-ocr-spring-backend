@@ -115,7 +115,7 @@ Error responses:
 
 ### Frontend integration notes
 
-The endpoint accepts a standard `multipart/form-data` POST, so any frontend can call it with `fetch`/`FormData` or `axios`. CORS is enabled for `/api/**` for local development. Since auth is HTTP Basic, the frontend must send an `Authorization: Basic <base64(user:pass)>` header on the request — fine for a first integration, but a token-based scheme (e.g. JWT) is recommended once there's a real login flow.
+The endpoint accepts a standard `multipart/form-data` POST, so any frontend can call it with `fetch`/`FormData` or `axios`. CORS is enabled for `/api/**` for local development, and the CORS preflight (`OPTIONS`) is permitted before the Basic auth filter runs, so browser preflight requests aren't rejected with 401. Since auth is HTTP Basic, the frontend must send an `Authorization: Basic <base64(user:pass)>` header on the actual request — fine for a first integration, but a token-based scheme (e.g. JWT) is recommended once there's a real login flow.
 
 ## Running tests
 

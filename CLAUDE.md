@@ -30,8 +30,8 @@ POST /api/ocr/v0/pdf (multipart "file", HTTP Basic auth required)
 - [OcrJob](src/main/java/com/akg/doc_ocr_spring_backend/entity/OcrJob.java) / [OcrJobRepository](src/main/java/com/akg/doc_ocr_spring_backend/repository/OcrJobRepository.java) — persistence for job/result history (status PENDING/SUCCESS/FAILED); schema is Hibernate-managed (`ddl-auto=update`), no Flyway migrations
 - [AppConfig](src/main/java/com/akg/doc_ocr_spring_backend/config/AppConfig.java) — defines the `RestTemplate` bean, enables `OcrUploadProperties`
 - [OcrUploadProperties](src/main/java/com/akg/doc_ocr_spring_backend/config/OcrUploadProperties.java) — `ocr.upload.*` config (allowed content types)
-- [SecurityConfig](src/main/java/com/akg/doc_ocr_spring_backend/config/SecurityConfig.java) — HTTP Basic auth, all `/api/**` requests require authentication (`/actuator/health` permitted)
-- [CorsConfig](src/main/java/com/akg/doc_ocr_spring_backend/config/CorsConfig.java) — permissive CORS for `/api/**`, for frontend integration during local dev
+- [SecurityConfig](src/main/java/com/akg/doc_ocr_spring_backend/config/SecurityConfig.java) — HTTP Basic auth, all `/api/**` requests require authentication (`/actuator/health` and CORS preflight `OPTIONS` permitted); wires the `CorsConfigurationSource` bean via `http.cors(...)` so preflight is evaluated before auth
+- [CorsConfig](src/main/java/com/akg/doc_ocr_spring_backend/config/CorsConfig.java) — permissive CORS for `/api/**` via a `CorsConfigurationSource` bean (not `WebMvcConfigurer`, so Spring Security's filter chain can consume it), for frontend integration during local dev
 - [LoggerService](src/main/java/com/akg/doc_ocr_spring_backend/logging/LoggerService.java) — thin wrapper around a single `"app-logger"` SLF4J logger; `.error()` does manual `String.format` when a `Throwable` is passed
 
 ## Config
