@@ -25,7 +25,9 @@ POST /api/ocr/v0/pdf (multipart "file", HTTP Basic auth required)
 
 ## Setup
 
-Clone the repo and set the following environment variables as needed:
+Clone the repo and set the following environment variables as needed.
+
+macOS/Linux (bash):
 
 ```bash
 export OCR_SPACE_API_KEY=your-api-key-here   # optional, defaults to the "helloworld" demo key
@@ -36,7 +38,20 @@ export DB_USER=doc_ocr                       # optional
 export DB_PASSWORD=doc_ocr                   # optional
 ```
 
-Start PostgreSQL locally:
+Windows (PowerShell):
+
+```powershell
+$env:OCR_SPACE_API_KEY = "your-api-key-here"
+$env:APP_USER = "admin"
+$env:APP_PASSWORD = "your-basic-auth-password"
+$env:DB_URL = "jdbc:postgresql://localhost:5433/doc_ocr"
+$env:DB_USER = "doc_ocr"
+$env:DB_PASSWORD = "doc_ocr"
+```
+
+All of the above are optional — defaults matching `docker-compose.yml` are baked into `application.properties`, so you can skip this step entirely for local dev.
+
+Start PostgreSQL locally (requires Docker Desktop running):
 
 ```bash
 docker compose up -d
@@ -44,17 +59,31 @@ docker compose up -d
 
 ## Running the app
 
+macOS/Linux:
+
 ```bash
 ./gradlew bootRun
 ```
 
-On Windows:
+Windows (PowerShell or `cmd.exe`) — always use the `.\` prefix; PowerShell requires it (unlike `cmd.exe`, it won't run a script from the current directory by name alone), and `cmd.exe` accepts it too, so this one form works in both:
 
-```bash
-gradlew.bat bootRun
+```powershell
+.\gradlew.bat bootRun
 ```
 
 The app starts on `http://localhost:8080` by default. Hibernate auto-creates/updates the database schema on startup (`spring.jpa.hibernate.ddl-auto=update`).
+
+### Windows troubleshooting
+
+- **`gradlew.bat : The term 'gradlew.bat' is not recognized...`** — you're in PowerShell; use `.\gradlew.bat bootRun` (see above), not bare `gradlew.bat`.
+- **`Web server failed to start. Port 8080 was already in use.`** — another process (often a previous stuck `bootRun`, or another local app) is already listening on 8080. Find and stop it:
+
+  ```powershell
+  Get-NetTCPConnection -LocalPort 8080 -State Listen | Select-Object OwningProcess
+  Stop-Process -Id <OwningProcess> -Force
+  ```
+
+- **Connection refused / auth errors talking to Postgres** — make sure Docker Desktop is running and `docker compose up -d` was run first; check with `docker compose ps`.
 
 ## Usage
 
