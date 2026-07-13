@@ -13,11 +13,14 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.akg.doc_ocr_spring_backend.dto.OcrSpaceResponse;
+import com.akg.doc_ocr_spring_backend.entity.OcrJob;
 import com.akg.doc_ocr_spring_backend.logging.LoggerService;
+import com.akg.doc_ocr_spring_backend.repository.OcrJobRepository;
 import com.akg.doc_ocr_spring_backend.service.OcrService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -33,14 +36,26 @@ public class OcrServiceImpl implements OcrService {
 
     private final RestTemplate restTemplate;
     private final LoggerService logger;
+    private final OcrJobRepository ocrJobRepository;
 
-    public OcrServiceImpl(RestTemplate restTemplate, LoggerService logger) {
+    public OcrServiceImpl(RestTemplate restTemplate, LoggerService logger, OcrJobRepository ocrJobRepository) {
         this.restTemplate = restTemplate;
         this.logger = logger;
+        this.ocrJobRepository = ocrJobRepository;
     }
 
     @Override
-    public String processPdf(MultipartFile file) throws IOException {
+    public OcrJob processPdf(MultipartFile file) throws IOException {
+        OcrJob job = new OcrJob();
+        job.setFilename(file.getOriginalFilename());
+        job.setContentType(file.getContentType());
+        job.setFileSizeBytes(file.getSize());
+        job.setStatus(OcrJob.Status.PENDING);
+        Instant now = Instant.now();
+        job.setCreatedAt(now);
+        job.setUpdatedAt(now);
+        job = ocrJobRepository.save(job);
+
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
         headers.set("apikey", ocrSpaceApiKey);
@@ -64,9 +79,17 @@ public class OcrServiceImpl implements OcrService {
             List<String> parsedTexts = parsePdf(response);
             String result = String.join("\n---\n", parsedTexts);
             logger.info("OCR Space API returned for file={} extracted {} pages", file.getOriginalFilename(), parsedTexts.size());
-            return result;
+
+            job.setStatus(OcrJob.Status.SUCCESS);
+            job.setExtractedText(result);
+            job.setUpdatedAt(Instant.now());
+            return ocrJobRepository.save(job);
         } catch (Exception e) {
             logger.error("Failed to process PDF with OCR Space API for file={}", e, file.getOriginalFilename());
+            job.setStatus(OcrJob.Status.FAILED);
+            job.setErrorMessage(e.getMessage());
+            job.setUpdatedAt(Instant.now());
+            ocrJobRepository.save(job);
             throw new IOException("Failed to process PDF with OCR Space API", e);
         }
     }

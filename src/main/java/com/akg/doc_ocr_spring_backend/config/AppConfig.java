@@ -1,10 +1,12 @@
 package com.akg.doc_ocr_spring_backend.config;
 
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestTemplate;
 
 @Configuration
+@EnableConfigurationProperties(OcrUploadProperties.class)
 public class AppConfig {
 
     @Bean

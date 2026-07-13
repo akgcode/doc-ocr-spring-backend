@@ -13,7 +13,9 @@
       "Bash(docker ps:*)",
       "Bash(docker exec:*)",
       "Bash(docker-compose down:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(find / -iname \"spring-web-*.jar\" 2>/dev/null | head -5)",
+      "Read(//c//**)"
     ]
   }
 }
